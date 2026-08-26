@@ -12,7 +12,7 @@ Built as a capstone project for the **[DataTalks.Club LLM Zoomcamp 2026](https:/
 
 ---
 
-## 📋 Problem Description
+## Problem Description
 
 Navigating large technical documentations, manuals, and internal knowledge bases can be slow and inefficient. Standard general-purpose LLMs often suffer from hallucinations when answering domain-specific questions or lack access to up-to-date private documents.
 
@@ -25,9 +25,10 @@ This project provides an automated, low-latency, end-to-end RAG architecture tha
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 ```mermaid
+
 flowchart TD
     User["Client / User"]
     API["FastAPI App (app/main.py)"]
@@ -49,7 +50,7 @@ flowchart TD
         Ollama
         K8s
     end
-
+```
 
 ## Tech Stack & Tools
 
