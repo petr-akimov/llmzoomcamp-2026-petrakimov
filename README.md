@@ -25,32 +25,73 @@ This project provides an automated, low-latency, end-to-end RAG architecture tha
 
 ---
 
+# High-Speed RAG Assistant (LLM Zoomcamp 2026 Project)
+
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com)
+[![LanceDB](https://img.shields.io/badge/LanceDB-VectorDB-black)](https://lancedb.com)
+[![Docker](https://img.shields.io/badge/Docker-Supported-blue)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Yandex_Cloud-326CE5)](https://kubernetes.io/)
+
+An end-to-end, high-speed Retrieval-Augmented Generation (RAG) service optimized for CPU inference. The system indexes document knowledge bases, stores vector embeddings in Yandex Cloud S3 via LanceDB, performs hybrid search, and streams answers using local LLM runtimes (Ollama with Qwen2.5-1.5B) inside Yandex Managed Service for Kubernetes.
+
+Built as a capstone project for the **[DataTalks.Club LLM Zoomcamp 2026](https://github.com/DataTalksClub/llm-zoomcamp)**.
+
+---
+
+## Problem Description
+
+Navigating large technical documentations, manuals, and internal knowledge bases can be slow and inefficient. Standard general-purpose LLMs often suffer from hallucinations when answering domain-specific questions or lack access to up-to-date private documents.
+
+**The Solution:**
+This project provides an automated, low-latency, end-to-end RAG architecture deployed in Yandex Cloud that:
+1. Ingests domain PDF/text documents into a structured vector database.
+2. Uses **Hybrid Search** (combining dense vector search with sparse text search) to achieve high recall and precision.
+3. Serves low-latency streaming answers (Server-Sent Events / SSE) over a high-performance **FastAPI** backend using an **Ollama (`qwen2.5:1.5b`)** engine deployed inside Kubernetes.
+4. Leverages **Yandex Cloud S3 Object Storage** as a persistent storage layer for LanceDB vector indexes.
+
+---
 ## System Architecture
 
 ```mermaid
 
 flowchart TD
     User["Client / User"]
-    API["FastAPI App (app/main.py)"]
-    Embedder["FastEmbed (BAAI/bge-small-en-v1.5)"]
-    LanceDB[("LanceDB Index on Yandex Cloud S3")]
-    Ollama["Ollama Engine (Qwen2.5:1.5b)"]
-    K8s["Kubernetes / Docker Stack"]
 
-    User -->|"POST /query /stream"| API
-    API -->|"Generate Embedding"| Embedder
-    API -->|"Hybrid Search (Vector + Text)"| LanceDB
-    LanceDB -->|"Retrieved Context (Top-K)"| API
-    API -->|"Concise Prompt + Context"| Ollama
-    Ollama -->|"Streaming Response (SSE) / JSON"| API
-    API -->|"Streamed Answer"| User
+    subgraph YandexCloud["Yandex Cloud Infrastructure"]
+        
+        subgraph K8sCluster["Yandex Managed Kubernetes Cluster"]
+            
+            subgraph RAGPod["rag-service Pod"]
+                FastAPI["FastAPI App (app/main.py)"]
+                Embedder["FastEmbed (BAAI/bge-small-en-v1.5)"]
+            end
 
-    subgraph Infrastructure
-        LanceDB
-        Ollama
-        K8s
+            subgraph OllamaPod["ollama-qwen Pod"]
+                Ollama["Ollama Engine (qwen2.5:1.5b)"]
+            end
+
+            RAGService["Service: rag-service:8000"]
+            OllamaService["Service: ollama-qwen-service:11434"]
+            ConfigSecret["ConfigMap & Secrets"]
+
+            ConfigSecret -.-> RAGPod
+            RAGService --> FastAPI
+            OllamaService --> Ollama
+        end
+
+        S3[("Yandex Object Storage (S3)\ns3://<bucket>/lancedb")]
     end
+
+    User -->|"HTTP POST /query /stream"| RAGService
+    FastAPI -->|"1. Local Vector Encoding"| Embedder
+    FastAPI -->|"2. Hybrid Search (bof/hybrid)"| S3
+    S3 -->|"3. Top-K Context Chunks"| FastAPI
+    FastAPI -->|"4. Async HTTP Prompt + Context"| OllamaService
+    Ollama -->|"5. Stream / Completion Response"| FastAPI
+    FastAPI -->|"6. Streamed SSE / JSON Answer"| User
 ```
+
 
 ## Tech Stack & Tools
 
