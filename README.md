@@ -90,32 +90,62 @@ Prerequisites
 - Python 3.12
 - Docker, Docker Compose Kubernetes cluster)
 - uv for Python environment management
+- terraform
 
 1. Clone the repository:
 
 git clone https://github.com/petr-akimov/llmzoomcamp-2026-petrakimov.git
 
-2. Configure Environment Variables:
+2. Create infrastructure (k8s managed cluster and s3 bucket)
+
+```
+cd infra
+terraform init
+terraform validate
+terraform plan
+terraform apply
+```
+
+variables.json will be created in infra directory.
+
+3. Configure Environment Variables:
 
 Copy env.example to .env and update it
 
 ```
-LLM_MODEL_NAME=qwen2.5:1.5b
 EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 TABLE_NAME=pdf_vectors
-S3_BUCKET_NAME=your-s3-bucket
-S3_ACCESS_KEY=your-access-key
-S3_SECRET_KEY=your-secret-key
-S3_ENDPOINT_URL=[https://storage.yandexcloud.net](https://storage.yandexcloud.net)
+
+S3_BUCKET_NAME=akimovp-bucket-...
+S3_ACCESS_KEY=YC...
+S3_SECRET_KEY=YC...
+S3_ENDPOINT_URL=https://storage.yandexcloud.net
 AWS_REGION=ru-central1
-OLLAMA_URL=http://localhost:11434/api/generate
+
+KSERVE_URL=http://apps.akimovp.ru/v1/completions
+LLM_MODEL_NAME=qwen-1-5b
 ```
 
-3. 
-1. Install Dependencies:
+Files k8s/secret-rag.yaml, k8s/configmap-rag.yaml should be populated accordingly.
+
+4. Install Dependencies:
 
 uv sync
 
-2. Run the Ingestion Script:
+5. Run the Ingestion Script:
 
+uv run python scripts/ingest.py
+
+6. Build and push the image
+
+docker build -t petrakimovdocker/rag-service:latest .
+docker push petrakimovdocker/rag-service:latest
+
+7. Deploy RAG and LLM in k8s cluster:
+
+kubectl apply -f k8s
+
+8. Add monitoring:
+
+docker-compose up -f monitoring.yaml
 
