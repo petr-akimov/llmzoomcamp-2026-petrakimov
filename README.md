@@ -29,40 +29,21 @@ This project provides an automated, low-latency, end-to-end RAG architecture dep
 ```mermaid
 
 flowchart TD
-    User["Client / User"]
+    User["User"]
 
-    subgraph YandexCloud["Yandex Cloud Infrastructure"]
-        
-        subgraph K8sCluster["Yandex Managed Kubernetes Cluster"]
-            
-            subgraph RAGPod["rag-service Pod"]
-                FastAPI["FastAPI App (app/main.py)"]
-                Embedder["FastEmbed (BAAI/bge-small-en-v1.5)"]
-            end
-
-            subgraph OllamaPod["ollama-qwen Pod"]
-                Ollama["Ollama Engine (qwen2.5:1.5b)"]
-            end
-
-            RAGService["Service: rag-service:8000"]
-            OllamaService["Service: ollama-qwen-service:11434"]
-            ConfigSecret["ConfigMap & Secrets"]
-
-            ConfigSecret -.-> RAGPod
-            RAGService --> FastAPI
-            OllamaService --> Ollama
-        end
-
-        S3[("Yandex Object Storage (S3)\ns3://<bucket>/lancedb")]
+    subgraph YandexCloud["Yandex Cloud"]
+        RAG["RAG / Embedding"]
+        Ollama["Ollama / Qwen"]
+        S3[("S3 / LanceDB")]
     end
 
-    User -->|"HTTP POST /query /stream"| RAGService
-    FastAPI -->|"1. Local Vector Encoding"| Embedder
-    FastAPI -->|"2. Hybrid Search (bof/hybrid)"| S3
-    S3 -->|"3. Top-K Context Chunks"| FastAPI
-    FastAPI -->|"4. Async HTTP Prompt + Context"| OllamaService
-    Ollama -->|"5. Stream / Completion Response"| FastAPI
-    FastAPI -->|"6. Streamed SSE / JSON Answer"| User
+    User -->|"1. Question"| RAG
+    RAG -->|"2. Hybrid Search"| S3
+    S3 -->|"3. Retrieved Context"| RAG
+    RAG -->|"4. Prompt + Context"| Ollama
+    Ollama -->|"5. Generated Answer"| RAG
+    RAG -->|"6. Answer / Stream"| User
+
 ```
 
 
