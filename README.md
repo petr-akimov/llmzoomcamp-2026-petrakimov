@@ -1,32 +1,5 @@
 # High-Speed RAG Assistant (LLM Zoomcamp 2026 Project)
 
-[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https.python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com)
-[![LanceDB](https://img.shields.io/badge/LanceDB-VectorDB-black)](https://lancedb.com)
-[![Docker](https://img.shields.io/badge/Docker-Supported-blue)](https://www.docker.com/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-K8s-326CE5)](https://kubernetes.io/)
-
-An end-to-end, high-speed Retrieval-Augmented Generation (RAG) service optimized for CPU inference. The system indexes document knowledge bases, stores vector embeddings in Yandex Cloud S3 via LanceDB, performs hybrid search, and streams answers using local LLM runtimes (Ollama with Qwen2.5-1.5B).
-
-Built as a capstone project for the **[DataTalks.Club LLM Zoomcamp 2026](https://github.com/DataTalksClub/llm-zoomcamp)**.
-
----
-
-## Problem Description
-
-Navigating large technical documentations, manuals, and internal knowledge bases can be slow and inefficient. Standard general-purpose LLMs often suffer from hallucinations when answering domain-specific questions or lack access to up-to-date private documents.
-
-**The Solution:**
-This project provides an automated, low-latency, end-to-end RAG architecture that:
-1. Ingests domain PDF/text documents into a structured vector database.
-2. Uses **Hybrid Search** (combining dense vector search with sparse text search) to achieve high recall and precision.
-3. Serves low-latency streaming answers (Server-Sent Events / SSE) over a high-performance **FastAPI** backend using local Ollama (`qwen2.5:1.5b`) optimized for CPU runtimes.
-4. Leverages **S3 object storage (Yandex Cloud)** as a persistent serverless storage layer for LanceDB vector indexes.
-
----
-
-# High-Speed RAG Assistant (LLM Zoomcamp 2026 Project)
-
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com)
 [![LanceDB](https://img.shields.io/badge/LanceDB-VectorDB-black)](https://lancedb.com)
