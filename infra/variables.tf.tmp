@@ -35,6 +35,36 @@ variable "yc_service_account_name" {
   default     = "s3-sa"
 }
 
+variable "kubeconfig_path" {
+  description = "path to kubeconfig"
+  type        = string
+  default     = "../kubeconfig.yaml"
+}
+
+variable "yc_instance_name" {
+  type        = string
+  description = "Name of the virtual machine"
+  default     = "akimovp-proxy-vm"
+}
+
+variable "yc_image_id" {
+  type        = string
+  description = "ID of the image for the virtual machine"
+  default     = "fd808e721rc1vt7jkd0o"
+}
+
+variable "public_key_path" {
+  type        = string
+  description = "Path to the public key file"
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+variable "private_key_path" {
+  type        = string
+  description = "Path to the private key file"
+  default     = "~/.ssh/id_rsa"
+}
+
 variable "yc_security_group_name" {
   type        = string
   description = "Name of the security group"
@@ -47,12 +77,12 @@ variable "yc_storage_endpoint_url" {
   default     = "https://storage.yandexcloud.net"
 }
 
-#locals {
-#  yc_config = {
-#    zone      = var.yc_zone
-#    folder_id = var.yc_folder_id
-#    token     = var.yc_token
-#    cloud_id  = var.yc_cloud_id
-#  }
-#}
+locals {
+  yc_config = {
+    zone      = var.yc_zone
+    folder_id = var.yc_folder_id
+    token     = var.yc_token
+    cloud_id  = var.yc_cloud_id
+  }
+}
 

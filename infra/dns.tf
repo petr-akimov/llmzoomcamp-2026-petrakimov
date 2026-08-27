@@ -1,4 +1,4 @@
-# Получаем IP адрес LoadBalancer'а Ingress-контроллера
+# get IP-address from the LoadBalancer of Ingress-controller 
 data "kubernetes_service" "ingress_nginx" {
   metadata {
     name      = "ingress-nginx-controller"
@@ -9,14 +9,12 @@ data "kubernetes_service" "ingress_nginx" {
   ]
 }
 
-# Создаём публичную DNS-зону
 resource "yandex_dns_zone" "main_zone" {
   name   = "akimovp-ru"
   zone   = "akimovp.ru."
   public = true
 }
 
-# A-запись для корневого домена
 resource "yandex_dns_recordset" "a_root" {
   zone_id = yandex_dns_zone.main_zone.id
   name    = "akimovp.ru."
@@ -25,7 +23,6 @@ resource "yandex_dns_recordset" "a_root" {
   data    = [data.kubernetes_service.ingress_nginx.status[0].load_balancer[0].ingress[0].ip]
 }
 
-# A-запись для www
 resource "yandex_dns_recordset" "a_www" {
   zone_id = yandex_dns_zone.main_zone.id
   name    = "www.akimovp.ru."
@@ -34,7 +31,6 @@ resource "yandex_dns_recordset" "a_www" {
   data    = [data.kubernetes_service.ingress_nginx.status[0].load_balancer[0].ingress[0].ip]
 }
 
-# A-запись для apps
 resource "yandex_dns_recordset" "a_apps" {
   zone_id = yandex_dns_zone.main_zone.id
   name    = "apps.akimovp.ru."
@@ -43,7 +39,6 @@ resource "yandex_dns_recordset" "a_apps" {
   data    = [data.kubernetes_service.ingress_nginx.status[0].load_balancer[0].ingress[0].ip]
 }
 
-# A-запись для www
 resource "yandex_dns_recordset" "a_rag" {
   zone_id = yandex_dns_zone.main_zone.id
   name    = "rag.akimovp.ru."

@@ -20,7 +20,7 @@ spec:
         - containerPort: 11434
         env:
         - name: OLLAMA_KEEP_ALIVE
-          value: "-1"  # Не выгружать модель из RAM
+          value: "-1"  
         resources:
           requests:
             cpu: "2"

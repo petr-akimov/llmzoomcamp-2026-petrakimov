@@ -1,4 +1,3 @@
-# Объявление провайдера
 terraform {
   required_providers {
     yandex = {

@@ -6,7 +6,7 @@ metadata:
   annotations:
     ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-  ingressClassName: nginx  # Замените на ваш Ingress-контроллер при необходимости (например, traefik)
+  ingressClassName: nginx 
   rules:
     - host: rag.akimovp.ru
       http:

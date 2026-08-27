@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
-# URL вашего RAG-сервиса
 API_URL="http://rag.akimovp.ru/api/v1/query"
 
-# Проверка наличия jq для красивого форматирования JSON
 HAS_JQ=$(command -v jq >/dev/null 2>&1 && echo "yes" || echo "no")
 
 echo "=================================================="
@@ -12,7 +10,6 @@ echo " API Endpoint: $API_URL"
 echo "=================================================="
 echo ""
 
-# Массив вопросов для проверки
 questions=(
     "Who proposed an amendment to the Missouri bill that required the territory to gradually outlaw slavery?"
     "How did Henry Brown manage to escape to the north?"
@@ -37,7 +34,6 @@ questions=(
     "Why did the British forces refrain from fully utilizing enslaved African Americans to fight against their masters in the South?"
 )
 
-# Ожидаемые ответы для удобства самопроверки
 expected_answers=(
     "James Tallmadge"
     "He had himself sealed in a wooden crate and shipped north"
@@ -62,10 +58,8 @@ expected_answers=(
     "Most British officers and white Loyalists were uncomfortable with the idea of using slaves to fight against white masters."
 )
 
-# Фиксация времени старта всего бенчмарка (в миллисекундах)
 total_start_ms=$(date +%s%3N)
 
-# Цикл по вопросам
 for i in "${!questions[@]}"; do
     num=$((i + 1))
     q="${questions[$i]}"
@@ -77,7 +71,6 @@ for i in "${!questions[@]}"; do
     echo "Expected: $exp"
     echo "--------------------------------------------------"
 
-    # Формируем JSON-полезную нагрузку
     payload=$(cat <<EOF
 {
   "question": "$q",
@@ -86,10 +79,8 @@ for i in "${!questions[@]}"; do
 EOF
     )
 
-    # Фиксация времени старта запроса
     start_ms=$(date +%s%3N)
 
-    # Отправляем запрос
     if [ "$HAS_JQ" = "yes" ]; then
         curl -s -X POST "$API_URL" \
              -H "Content-Type: application/json" \
@@ -101,10 +92,8 @@ EOF
         echo ""
     fi
 
-    # Фиксация времени окончания запроса
     end_ms=$(date +%s%3N)
 
-    # Вычисление времени выполнения текущего запроса
     elapsed_ms=$((end_ms - start_ms))
     elapsed_sec=$(awk -v ms="$elapsed_ms" 'BEGIN {printf "%.3f", ms/1000}')
 
@@ -112,7 +101,6 @@ EOF
     echo ""
 done
 
-# Фиксация времени окончания всего бенчмарка
 total_end_ms=$(date +%s%3N)
 total_elapsed_ms=$((total_end_ms - total_start_ms))
 total_elapsed_sec=$(awk -v ms="$total_elapsed_ms" 'BEGIN {printf "%.3f", ms/1000}')

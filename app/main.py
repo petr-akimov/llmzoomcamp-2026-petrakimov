@@ -14,7 +14,6 @@ from starlette.concurrency import run_in_threadpool
 
 load_dotenv()
 
-# Настройки из переменных окружения
 LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "qwen2.5:1.5b")
 EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 TABLE_NAME: str = os.getenv("TABLE_NAME", "pdf_vectors")
@@ -39,7 +38,6 @@ def generate_embedding(embedder: TextEmbedding, text: str) -> list[float]:
 
 
 def build_prompt(context_str: str, question: str) -> str:
-    """Лаконичный промпт для минимизации длины контекста (Prompt Processing)."""
     return (
         "Answer the question directly and concisely based ONLY on the following context.\n"
         "Do not generalize or guess. If context lacks information, state so.\n\n"
@@ -73,15 +71,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="High-Speed RAG Service (Ollama Engine)",
-    description="Оптимизированный RAG-сервис с поддержкой SSE-стриминга на CPU",
+    description="CPU Based RAG-service",
     version="2.1.0",
     lifespan=lifespan,
 )
 
 
 class QueryRequest(BaseModel):
-    question: str = Field(..., description="Вопрос пользователя")
-    k: int = Field(default=3, ge=1, le=10, description="Количество чанков контекста (по умолчанию 3)")
+    question: str = Field(..., description="User question")
+    k: int = Field(default=3, ge=1, le=10, description="Number of context chunks (default 3)")
 
 
 class QueryResponse(BaseModel):
@@ -96,7 +94,6 @@ async def healthz():
 
 
 async def fetch_context(embedder: TextEmbedding, table, question: str, k: int):
-    """Общий хелпер поиска контекста в LanceDB."""
     query_vector = await run_in_threadpool(generate_embedding, embedder, question)
 
     try:
@@ -128,7 +125,6 @@ async def fetch_context(embedder: TextEmbedding, table, question: str, k: int):
 
 @app.post("/api/v1/query", response_model=QueryResponse)
 async def query_rag(request: QueryRequest):
-    """Синхронный эндпоинт (ожидание полного ответа)."""
     embedder: TextEmbedding = state["embedder"]
     table = state["table"]
     http_client: httpx.AsyncClient = state["http_client"]
@@ -138,7 +134,7 @@ async def query_rag(request: QueryRequest):
     if not context_str:
         return QueryResponse(
             question=request.question,
-            answer="В базе знаний не найдено подходящей информации.",
+            answer="No passing info in the knowledge base.",
             sources=[],
         )
 
@@ -150,8 +146,8 @@ async def query_rag(request: QueryRequest):
         "stream": False,
         "options": {
             "temperature": 0.0,
-            "num_predict": 120,  # Лаконичный ответ сокращает генерацию
-            "num_thread": 4,     # Максимальное использование выделенных CPU ядер
+            "num_predict": 120,  
+            "num_thread": 4,    
         },
     }
 
@@ -163,7 +159,7 @@ async def query_rag(request: QueryRequest):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Ошибка Ollama: {str(e)}",
+            detail=f"Ollama Error: {str(e)}",
         )
 
     return QueryResponse(
@@ -175,7 +171,6 @@ async def query_rag(request: QueryRequest):
 
 @app.post("/api/v1/query/stream")
 async def query_rag_stream(request: QueryRequest):
-    """Потоковый эндпоинт (SSE) - отдает токены мгновенно по мере генерации."""
     embedder: TextEmbedding = state["embedder"]
     table = state["table"]
     http_client: httpx.AsyncClient = state["http_client"]
@@ -184,7 +179,7 @@ async def query_rag_stream(request: QueryRequest):
 
     if not context_str:
         async def empty_gen():
-            yield "В базе знаний не найдено подходящей информации."
+            yield "No passing info in the knowledge base."
         return StreamingResponse(empty_gen(), media_type="text/plain")
 
     prompt = build_prompt(context_str, request.question)
@@ -211,6 +206,6 @@ async def query_rag_stream(request: QueryRequest):
                         if text_chunk:
                             yield text_chunk
         except Exception as e:
-            yield f"\n[Ошибка генерации: {str(e)}]"
+            yield f"\n[Generation error: {str(e)}]"
 
     return StreamingResponse(stream_generator(), media_type="text/plain")

@@ -1,1 +1,1 @@
-# Пакет приложения FastAPI
+# packet of the FastAPI app
