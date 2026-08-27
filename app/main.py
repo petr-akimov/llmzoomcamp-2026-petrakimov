@@ -1,14 +1,22 @@
 import json
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import Any
 
 from dotenv import load_dotenv
 from fastembed import TextEmbedding
 from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 import httpx
 import lancedb
+from prometheus_client import (
+    Counter,
+    Histogram,
+    Summary,
+    generate_latest,
+    CONTENT_TYPE_LATEST,
+)
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -29,12 +37,37 @@ OLLAMA_URL: str = os.getenv(
     "http://ollama-qwen-service.default.svc.cluster.local:11434/api/generate",
 )
 
+# === Prometheus Metrics ===
+REQUEST_COUNT = Counter(
+    "rag_requests_total",
+    "Total RAG service HTTP requests",
+    ["endpoint", "method", "status"],
+)
+REQUEST_LATENCY = Histogram(
+    "rag_request_latency_seconds",
+    "RAG service HTTP request latency in seconds",
+    ["endpoint"],
+)
+EMBEDDING_LATENCY = Summary(
+    "rag_embedding_seconds",
+    "Time spent creating text embeddings",
+)
+LANCEDB_LATENCY = Summary(
+    "rag_lancedb_seconds",
+    "Time spent querying LanceDB vector index",
+)
+LLM_LATENCY = Summary(
+    "rag_llm_seconds",
+    "Time spent waiting for LLM completion from Ollama",
+)
+
 state: dict[str, Any] = {}
 
 
 def generate_embedding(embedder: TextEmbedding, text: str) -> list[float]:
-    embeddings_gen = embedder.embed([text])
-    return next(embeddings_gen).tolist()
+    with EMBEDDING_LATENCY.time():
+        embeddings_gen = embedder.embed([text])
+        return next(embeddings_gen).tolist()
 
 
 def build_prompt(context_str: str, question: str) -> str:
@@ -71,15 +104,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="High-Speed RAG Service (Ollama Engine)",
-    description="CPU Based RAG-service",
-    version="2.1.0",
+    description="CPU-based RAG-service with support of Prometheus metrics",
+    version="2.2.0",
     lifespan=lifespan,
 )
 
 
 class QueryRequest(BaseModel):
     question: str = Field(..., description="User question")
-    k: int = Field(default=3, ge=1, le=10, description="Number of context chunks (default 3)")
+    k: int = Field(default=3, ge=1, le=10, description="Number of context chunks")
 
 
 class QueryResponse(BaseModel):
@@ -93,9 +126,15 @@ async def healthz():
     return {"status": "ok"}
 
 
+@app.get("/metrics")
+async def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 async def fetch_context(embedder: TextEmbedding, table, question: str, k: int):
     query_vector = await run_in_threadpool(generate_embedding, embedder, question)
 
+    start_db = time.perf_counter()
     try:
         search_results = (
             table.search(query_vector, query_type="hybrid")
@@ -106,6 +145,8 @@ async def fetch_context(embedder: TextEmbedding, table, question: str, k: int):
         )
     except Exception:
         search_results = table.search(query_vector).select(["text", "metadata"]).limit(k).to_list()
+    finally:
+        LANCEDB_LATENCY.observe(time.perf_counter() - start_db)
 
     if not search_results:
         return "", []
@@ -125,87 +166,95 @@ async def fetch_context(embedder: TextEmbedding, table, question: str, k: int):
 
 @app.post("/api/v1/query", response_model=QueryResponse)
 async def query_rag(request: QueryRequest):
-    embedder: TextEmbedding = state["embedder"]
-    table = state["table"]
-    http_client: httpx.AsyncClient = state["http_client"]
-
-    context_str, sources = await fetch_context(embedder, table, request.question, request.k)
-
-    if not context_str:
-        return QueryResponse(
-            question=request.question,
-            answer="No passing info in the knowledge base.",
-            sources=[],
-        )
-
-    prompt = build_prompt(context_str, request.question)
-
-    payload = {
-        "model": LLM_MODEL_NAME,
-        "prompt": prompt,
-        "stream": False,
-        "options": {
-            "temperature": 0.0,
-            "num_predict": 120,  
-            "num_thread": 4,    
-        },
-    }
-
+    start_time = time.perf_counter()
+    endpoint = "/api/v1/query"
     try:
-        response = await http_client.post(OLLAMA_URL, json=payload)
-        response.raise_for_status()
-        llm_data = response.json()
-        answer = llm_data.get("response", "").strip()
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Ollama Error: {str(e)}",
-        )
+        embedder: TextEmbedding = state["embedder"]
+        table = state["table"]
+        http_client: httpx.AsyncClient = state["http_client"]
 
-    return QueryResponse(
-        question=request.question,
-        answer=answer,
-        sources=sources,
-    )
+        context_str, sources = await fetch_context(embedder, table, request.question, request.k)
+
+        if not context_str:
+            REQUEST_COUNT.labels(endpoint=endpoint, method="POST", status=200).inc()
+            return QueryResponse(
+                question=request.question,
+                answer="No passing information in the knowledge base.",
+                sources=[],
+            )
+
+        prompt = build_prompt(context_str, request.question)
+        payload = {
+            "model": LLM_MODEL_NAME,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"temperature": 0.0, "num_predict": 120, "num_thread": 4},
+        }
+
+        start_llm = time.perf_counter()
+        try:
+            response = await http_client.post(OLLAMA_URL, json=payload)
+            response.raise_for_status()
+            llm_data = response.json()
+            answer = llm_data.get("response", "").strip()
+        except Exception as e:
+            REQUEST_COUNT.labels(endpoint=endpoint, method="POST", status=502).inc()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Ollama Error: {str(e)}",
+            )
+        finally:
+            LLM_LATENCY.observe(time.perf_counter() - start_llm)
+
+        REQUEST_COUNT.labels(endpoint=endpoint, method="POST", status=200).inc()
+        return QueryResponse(question=request.question, answer=answer, sources=sources)
+    finally:
+        REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.perf_counter() - start_time)
 
 
 @app.post("/api/v1/query/stream")
 async def query_rag_stream(request: QueryRequest):
-    embedder: TextEmbedding = state["embedder"]
-    table = state["table"]
-    http_client: httpx.AsyncClient = state["http_client"]
+    start_time = time.perf_counter()
+    endpoint = "/api/v1/query/stream"
+    try:
+        embedder: TextEmbedding = state["embedder"]
+        table = state["table"]
+        http_client: httpx.AsyncClient = state["http_client"]
 
-    context_str, sources = await fetch_context(embedder, table, request.question, request.k)
+        context_str, sources = await fetch_context(embedder, table, request.question, request.k)
 
-    if not context_str:
-        async def empty_gen():
-            yield "No passing info in the knowledge base."
-        return StreamingResponse(empty_gen(), media_type="text/plain")
+        if not context_str:
+            async def empty_gen():
+                yield "No passing information in the knowledge base."
+            REQUEST_COUNT.labels(endpoint=endpoint, method="POST", status=200).inc()
+            return StreamingResponse(empty_gen(), media_type="text/plain")
 
-    prompt = build_prompt(context_str, request.question)
+        prompt = build_prompt(context_str, request.question)
+        payload = {
+            "model": LLM_MODEL_NAME,
+            "prompt": prompt,
+            "stream": True,
+            "options": {"temperature": 0.0, "num_predict": 120, "num_thread": 4},
+        }
 
-    payload = {
-        "model": LLM_MODEL_NAME,
-        "prompt": prompt,
-        "stream": True,
-        "options": {
-            "temperature": 0.0,
-            "num_predict": 120,
-            "num_thread": 4,
-        },
-    }
+        async def stream_generator():
+            start_llm = time.perf_counter()
+            try:
+                async with http_client.stream("POST", OLLAMA_URL, json=payload) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if line:
+                            chunk = json.loads(line)
+                            text_chunk = chunk.get("response", "")
+                            if text_chunk:
+                                yield text_chunk
+            except Exception as e:
+                REQUEST_COUNT.labels(endpoint=endpoint, method="POST", status=502).inc()
+                yield f"\n[Error processing text generation: {str(e)}]"
+            finally:
+                LLM_LATENCY.observe(time.perf_counter() - start_llm)
 
-    async def stream_generator():
-        try:
-            async with http_client.stream("POST", OLLAMA_URL, json=payload) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line:
-                        chunk = json.loads(line)
-                        text_chunk = chunk.get("response", "")
-                        if text_chunk:
-                            yield text_chunk
-        except Exception as e:
-            yield f"\n[Generation error: {str(e)}]"
-
-    return StreamingResponse(stream_generator(), media_type="text/plain")
+        REQUEST_COUNT.labels(endpoint=endpoint, method="POST", status=200).inc()
+        return StreamingResponse(stream_generator(), media_type="text/plain")
+    finally:
+        REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.perf_counter() - start_time)

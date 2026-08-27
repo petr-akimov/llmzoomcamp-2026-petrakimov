@@ -1,0 +1,36 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rag-service-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kp-kube-prometheus-stack-prometheus
+    release: kp
+    role: alert-rules
+spec:
+  groups:
+  - name: rag-service.rules
+    interval: 30s
+    rules:
+
+    # Высокий процент ошибок 5xx (> 5%)
+    - alert: RAGHighErrorRate
+      expr: |
+        (sum(rate(rag_requests_total{status=~"5.."}[5m])) / sum(rate(rag_requests_total[5m]))) * 100 > 5
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "RAG Service High Error Rate"
+        description: "Error rate (5xx) is above 5% for more than 2 minutes."
+
+    # Высокая задержка ответа LLM (> 5 секунд)
+    - alert: RAGHighLLMLatency
+      expr: |
+        rate(rag_llm_seconds_sum[5m]) / rate(rag_llm_seconds_count[5m]) > 5
+      for: 3m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Ollama LLM High Latency"
+        description: "Average LLM generation time is higher than 5s."

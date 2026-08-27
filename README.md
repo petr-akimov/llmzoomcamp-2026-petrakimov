@@ -1,4 +1,4 @@
-# High-Speed RAG Assistant (LLM Zoomcamp 2026 Project)
+# High-Speed CPU-based RAG Assistant (LLM Zoomcamp 2026 Project)
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com)

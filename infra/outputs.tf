@@ -1,5 +1,5 @@
 output "ingress_ip" {
-  value = data.kubernetes_service.ingress_nginx.status[0].load_balancer[0].ingress[0].ip
+  value = data.kubernetes_service_v1.ingress_nginx.status[0].load_balancer[0].ingress[0].ip
   description = "Dynamic public IP of the Ingress LoadBalancer"
 }
 

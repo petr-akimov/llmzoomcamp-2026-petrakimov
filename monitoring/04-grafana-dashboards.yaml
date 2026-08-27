@@ -1,0 +1,146 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-grafana-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  rag-dashboard.json: |-
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "title": "Total Requests",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "expr": "sum(rag_requests_total)",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Current Error Rate (5xx)",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "expr": "sum(rate(rag_requests_total{status=~\"5..\"}[5m])) / sum(rate(rag_requests_total[5m])) * 100 or vector(0)",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Avg Embedding Time",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "expr": "rate(rag_embedding_seconds_sum[5m]) / rate(rag_embedding_seconds_count[5m])",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Avg LLM Response Time",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "expr": "rate(rag_llm_seconds_sum[5m]) / rate(rag_llm_seconds_count[5m])",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Request Rate (RPS by Endpoint)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "expr": "sum by (endpoint, status) (rate(rag_requests_total[2m]))",
+              "legendFormat": "{{endpoint}} ({{status}})",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Latency Percentiles (p50, p90, p99)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(rag_request_latency_seconds_bucket[5m])) by (le))",
+              "legendFormat": "p50",
+              "refId": "A"
+            },
+            {
+              "expr": "histogram_quantile(0.90, sum(rate(rag_request_latency_seconds_bucket[5m])) by (le))",
+              "legendFormat": "p90",
+              "refId": "B"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(rag_request_latency_seconds_bucket[5m])) by (le))",
+              "legendFormat": "p99",
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "title": "Pipeline Stage Breakdown (Avg Seconds)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "expr": "rate(rag_embedding_seconds_sum[5m]) / rate(rag_embedding_seconds_count[5m])",
+              "legendFormat": "Embedding",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(rag_lancedb_seconds_sum[5m]) / rate(rag_lancedb_seconds_count[5m])",
+              "legendFormat": "LanceDB",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(rag_llm_seconds_sum[5m]) / rate(rag_llm_seconds_count[5m])",
+              "legendFormat": "LLM Generation",
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "title": "CPU Usage by Pod",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "targets": [
+            {
+              "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=\"default\", pod=~\"rag-service.*\"}) by (pod)",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["rag", "fastapi"],
+      "time": { "from": "now-15m", "to": "now" },
+      "title": "RAG High-Speed Service Dashboard",
+      "uid": "rag-service-dashboard"
+    }
