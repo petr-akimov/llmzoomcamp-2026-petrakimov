@@ -32,3 +32,58 @@ resource "local_file" "variables_file" {
   filename        = "./variables.json"
   file_permission = "0600"
 }
+
+resource "local_file" "env_file" {
+  content = <<-EOT
+    EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+    TABLE_NAME=pdf_vectors
+    S3_BUCKET_NAME=${yandex_storage_bucket.bucket.bucket}
+    S3_ACCESS_KEY=${module.iam-s3.access_key}
+    S3_SECRET_KEY=${module.iam-s3.secret_key}
+    S3_ENDPOINT_URL=${var.yc_storage_endpoint_url}
+    AWS_REGION=ru-central1
+    LLM_MODEL_NAME=qwen2.5:1.5b
+    OLLAMA_URL=http://apps.akimovp.ru/api/generate
+
+  EOT
+  filename        = "../.env"
+  file_permission = "0644"
+  depends_on      = [yandex_storage_bucket.bucket, module.iam-s3]
+}
+
+resource "local_file" "k8s_secret" {
+  content = <<-EOT
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rag-service-secrets
+type: Opaque
+stringData:
+  S3_ACCESS_KEY: "${module.iam-s3.access_key}"
+  S3_SECRET_KEY: "${module.iam-s3.secret_key}"
+EOT
+  filename        = "../k8s/secret-rag.yaml"
+  file_permission = "0644"
+  depends_on      = [module.iam-s3]
+}
+
+resource "local_file" "k8s_configmap" {
+  content = <<-EOT
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-service-config
+data:
+  EMBEDDING_MODEL: "BAAI/bge-small-en-v1.5"
+  TABLE_NAME: "pdf_vectors"
+  S3_BUCKET_NAME: "${yandex_storage_bucket.bucket.bucket}"
+  S3_ENDPOINT_URL: "${var.yc_storage_endpoint_url}"
+  AWS_REGION: "ru-central1"
+  LLM_MODEL_NAME: "qwen-1-5b"
+  OLLAMA_URL: "http://ollama-qwen-service.default.svc.cluster.local:11434/api/generate"
+EOT
+  filename        = "../k8s/configmap-rag.yaml"
+  file_permission = "0644"
+  depends_on      = [yandex_storage_bucket.bucket]
+}
