@@ -19,4 +19,6 @@ uv.lock
 secret-rag.yaml
 static_key.json
 variables.json
-configmap-rag.json
+configmap-rag.jsoninfra/modules/iam-s3/static_key.json
+infra/variables.json
+k8s/secret-rag.yaml
