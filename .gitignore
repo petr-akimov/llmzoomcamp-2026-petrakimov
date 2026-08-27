@@ -16,3 +16,7 @@ venv/
 .venv/
 .env
 uv.lock
+secret-rag.yaml
+static_key.json
+variables.json
+configmap-rag.json
