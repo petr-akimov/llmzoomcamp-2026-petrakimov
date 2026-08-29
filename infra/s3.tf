@@ -33,6 +33,7 @@ resource "local_file" "variables_file" {
   file_permission = "0600"
 }
 
+
 resource "local_file" "env_file" {
   content = <<-EOT
     EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
@@ -80,7 +81,7 @@ data:
   S3_BUCKET_NAME: "${yandex_storage_bucket.bucket.bucket}"
   S3_ENDPOINT_URL: "${var.yc_storage_endpoint_url}"
   AWS_REGION: "ru-central1"
-  LLM_MODEL_NAME: "qwen-1-5b"
+  LLM_MODEL_NAME: "qwen2.5:1.5b"
   OLLAMA_URL: "http://ollama-qwen-service.default.svc.cluster.local:11434/api/generate"
 EOT
   filename        = "../k8s/configmap-rag.yaml"

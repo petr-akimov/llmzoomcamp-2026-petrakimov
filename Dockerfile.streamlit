@@ -1,0 +1,17 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Disable output buffering and byte-code generation
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Install minimal dependencies for UI
+RUN pip install --no-cache-dir streamlit requests
+
+# Copy frontend source code
+COPY app/ui.py /app/ui.py
+
+EXPOSE 8501
+
+ENTRYPOINT ["streamlit", "run", "ui.py", "--server.port=8501", "--server.address=0.0.0.0"]

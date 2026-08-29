@@ -54,3 +54,19 @@ resource "yandex_dns_recordset" "a_grafana" {
   ttl     = 300
   data    = [data.kubernetes_service_v1.ingress_nginx.status[0].load_balancer[0].ingress[0].ip]
 }
+
+resource "yandex_dns_recordset" "a_airflow" {
+  zone_id = yandex_dns_zone.main_zone.id
+  name    = "airflow.akimovp.ru."
+  type    = "A"
+  ttl     = 300
+  data    = [data.kubernetes_service_v1.ingress_nginx.status[0].load_balancer[0].ingress[0].ip]
+}
+
+resource "yandex_dns_recordset" "a_ui" {
+  zone_id = yandex_dns_zone.main_zone.id
+  name    = "ui.akimovp.ru."
+  type    = "A"
+  ttl     = 300
+  data    = [data.kubernetes_service_v1.ingress_nginx.status[0].load_balancer[0].ingress[0].ip]
+}

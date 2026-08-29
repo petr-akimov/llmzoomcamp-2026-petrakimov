@@ -60,11 +60,6 @@ LLM_LATENCY = Summary(
     "rag_llm_seconds",
     "Time spent waiting for LLM completion from Ollama",
 )
-USER_FEEDBACK_COUNT = Counter(
-    "rag_user_feedback_total",
-    "Total user feedback received for RAG answers",
-    ["sentiment"],  # "positive" or "negative"
-)
 
 state: dict[str, Any] = {}
 
@@ -109,8 +104,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="High-Speed RAG Service (Ollama Engine)",
-    description="CPU-based RAG-service with support of Prometheus metrics and User Feedback",
-    version="2.3.0",
+    description="CPU-based RAG-service with support of Prometheus metrics",
+    version="2.2.0",
     lifespan=lifespan,
 )
 
@@ -124,15 +119,6 @@ class QueryResponse(BaseModel):
     question: str
     answer: str
     sources: list[str]
-
-
-class FeedbackRequest(BaseModel):
-    sentiment: str = Field(..., description="Sentiment of feedback: 'positive' or 'negative'")
-
-
-class FeedbackResponse(BaseModel):
-    status: str
-    message: str
 
 
 @app.get("/healthz", status_code=status.HTTP_200_OK)
@@ -153,11 +139,12 @@ async def fetch_context(embedder: TextEmbedding, table, question: str, k: int):
         search_results = (
             table.search(query_vector, query_type="hybrid")
             .text(question)
+            .select(["text", "metadata"])
             .limit(k)
             .to_list()
         )
     except Exception:
-        search_results = table.search(query_vector).limit(k).to_list()
+        search_results = table.search(query_vector).select(["text", "metadata"]).limit(k).to_list()
     finally:
         LANCEDB_LATENCY.observe(time.perf_counter() - start_db)
 
@@ -271,23 +258,3 @@ async def query_rag_stream(request: QueryRequest):
         return StreamingResponse(stream_generator(), media_type="text/plain")
     finally:
         REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.perf_counter() - start_time)
-
-
-@app.post("/api/v1/feedback", response_model=FeedbackResponse)
-async def collect_feedback(request: FeedbackRequest):
-    start_time = time.perf_counter()
-    endpoint = "/api/v1/feedback"
-    sentiment = request.sentiment.lower()
-
-    if sentiment not in ["positive", "negative"]:
-        REQUEST_COUNT.labels(endpoint=endpoint, method="POST", status=400).inc()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid sentiment value. Allowed values: 'positive' or 'negative'.",
-        )
-
-    USER_FEEDBACK_COUNT.labels(sentiment=sentiment).inc()
-    REQUEST_COUNT.labels(endpoint=endpoint, method="POST", status=200).inc()
-    REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.perf_counter() - start_time)
-
-    return FeedbackResponse(status="ok", message="Feedback recorded successfully")
