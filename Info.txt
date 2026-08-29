@@ -1,1 +1,0 @@
-add S3 minio/Airflow to k8s
