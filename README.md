@@ -92,6 +92,8 @@ flowchart TD
 | Full-Text Search (FTS) | 0.8067 | 0.7102 | 418.67 |
 | Hybrid Search	| 0.8533 | 0.7057 | 3037.72 |
 
+- Conclusion: Hybrid Search achieves the best balance between hit rate (0.8533) and keyword recall.
+
 <img src="img/rag_evaluation_001.png?raw=true" alt="RAG evaluation" title="RAG evaluation" width="50%"> <br>
 
 ### 2. LLM Output Evaluation
@@ -102,6 +104,8 @@ flowchart TD
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | Qwen2.5-1.5B | 0.1904 | 0.0047 | 0.1570 | 15.2413 | 18.8842 |
 | Qwen2.5-0.5B | 0.2519 | 0.0137 | 0.1954 | 12.1915 | 13.2801 |
+
+- Conclusion: Qwen2.5-1.5B provides higher generation quality and context adherence over 0.5B while maintaining acceptable CPU inference speed (18.88 tokens/sec).
 
 <img src="img/llm_evaluation_001.png?raw=true" alt="LLM evaluation" title="LLM evaluation" width="50%"> <br>
 
