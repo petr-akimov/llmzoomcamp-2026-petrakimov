@@ -14,17 +14,15 @@ echo "=== 2. Создание Namespace ==="
 kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
 
 echo "=== 3. Развертывание kube-prometheus-stack ==="
-helm upgrade --install kp prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  -f monitoring/01-kube-prom-values.yaml
+helm upgrade --install kp prometheus-community/kube-prometheus-stack --namespace monitoring -f k8s/monitoring/01-kube-prom-values.yaml
 
 echo "=== 4. Ожидание готовности пода Grafana ==="
 kubectl -n monitoring wait --for=condition=ready pod -l app.kubernetes.io/name=grafana --timeout=180s
 
 echo "=== 5. Применение ресурсов мониторинга ==="
-kubectl apply -f monitoring/04-grafana-dashboards.yaml
-kubectl apply -f monitoring/08-servicemonitor.yaml
-kubectl apply -f monitoring/05-grafana-ingress.yaml
+kubectl apply -f k8s/monitoring/04-grafana-dashboards.yaml
+kubectl apply -f k8s/monitoring/08-servicemonitor.yaml
+kubectl apply -f k8s/monitoring/05-grafana-ingress.yaml
 
 echo "=== 6. Проверка статуса компонентов ==="
 echo "--- Grafana Pods ---"

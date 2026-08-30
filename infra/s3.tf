@@ -64,7 +64,7 @@ stringData:
   S3_ACCESS_KEY: "${module.iam-s3.access_key}"
   S3_SECRET_KEY: "${module.iam-s3.secret_key}"
 EOT
-  filename        = "../k8s/secret-rag.yaml"
+  filename        = "../k8s/rag_llm/secret-rag.yaml"
   file_permission = "0644"
   depends_on      = [module.iam-s3]
 }
@@ -84,7 +84,7 @@ data:
   LLM_MODEL_NAME: "qwen2.5:1.5b"
   OLLAMA_URL: "http://ollama-qwen-service.default.svc.cluster.local:11434/api/generate"
 EOT
-  filename        = "../k8s/configmap-rag.yaml"
+  filename        = "../k8s/rag_llm/configmap-rag.yaml"
   file_permission = "0644"
   depends_on      = [yandex_storage_bucket.bucket]
 }

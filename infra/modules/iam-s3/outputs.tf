@@ -8,11 +8,6 @@ output "static_key_id" {
   description = "ID of the static access key"
 }
 
-output "sa_key_file_path" {
-  value       = local_file.sa_static_key_file.filename
-  description = "Path to the file containing the service account static key"
-}
-
 output "access_key" {
   value       = yandex_iam_service_account_static_access_key.sa_static_key.access_key
   description = "Access key of the static access"

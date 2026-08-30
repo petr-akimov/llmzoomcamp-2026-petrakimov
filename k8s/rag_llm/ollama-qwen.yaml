@@ -27,14 +27,14 @@ spec:
             memory: 2Gi
           limits:
             cpu: "4"
-            memory: 4Gi
+            memory: 6Gi
         lifecycle:
           postStart:
             exec:
               command:
               - /bin/sh
               - -c
-              - "sleep 5 && ollama pull qwen2.5:1.5b"
+              - "sleep 5 && ollama pull qwen2.5:1.5b && ollama pull qwen2.5:0.5b"
 ---
 apiVersion: v1
 kind: Service

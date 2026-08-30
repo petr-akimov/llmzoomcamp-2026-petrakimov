@@ -74,7 +74,9 @@ for i in "${!questions[@]}"; do
     payload=$(cat <<EOF
 {
   "question": "$q",
-  "k": 3
+  "k": 3,
+  "model": "qwen2.5:1.5b",
+  "model_name": "qwen2.5:1.5b"
 }
 EOF
     )
