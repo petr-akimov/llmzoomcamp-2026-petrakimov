@@ -126,24 +126,33 @@ Files k8s/secret-rag.yaml, k8s/configmap-rag.yaml should be populated accordingl
 
 4. Install Dependencies:
 
+```
 uv sync
+```
 
 5. Run the Ingestion Script:
 
-uv run python scripts/ingest.py
+```
+python scripts/ingest.py
+```
 
-6. Build and push the image
+6. Build and push the images: RAG and UI
 
+```
 docker build -t petrakimovdocker/rag-service:latest .
 docker push petrakimovdocker/rag-service:latest
 
-7. Deploy RAG and LLM in k8s cluster:
+docker build -t petrakimovdocker/rag-ui:latest -f Dockerfile.streamlit .
+docker push petrakimovdocker/rag-ui:latest 
+```
+
+7. Deploy RAG, LLM, UI in k8s cluster:
 
 ```
 kubectl apply -f k8s/rag_llm
 ```
 
-8. Add monitoring:
+8. Add the monitoring:
 
 ```
 ./k8s/monitoring/monitoring.sh
