@@ -23,3 +23,4 @@ configmap-rag.jsoninfra/modules/iam-s3/static_key.json
 infra/variables.json
 k8s/secret-rag.yaml
 .ipynb_checkpoints
+airflow_minio
