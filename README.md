@@ -115,7 +115,12 @@ Evaluated in `notebooks/llm_evaluation.ipynb` using GPT-4o / Qwen as an evaluato
 
 <img src="img/rag_evaluation_001.png?raw=true" alt="RAG evaluation" title="RAG evaluation" width="50%"> <br>
 
-### 2. LLM Evaluation 
+### 2. LLM Output Evaluation
+
+| Model | ROUGE-1 | BLEU | Token F1 | Avg Latency (s) | Tokens/sec |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| Qwen2.5-1.5B | 0.1904 | 0.0047 | 0.1570 | 15.2413 | 18.8842 |
+| Qwen2.5-0.5B | 0.2519 | 0.0137 | 0.1954 | 12.1915 | 13.2801 |
 
 <img src="img/llm_evaluation_001.png?raw=true" alt="LLM evaluation" title="LLM evaluation" width="50%"> <br>
 
