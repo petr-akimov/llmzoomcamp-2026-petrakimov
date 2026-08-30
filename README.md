@@ -5,6 +5,8 @@
 [![LanceDB](https://img.shields.io/badge/LanceDB-VectorDB-black)](https://lancedb.com)
 [![Docker](https://img.shields.io/badge/Docker-Supported-blue)](https://www.docker.com/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-Yandex_Cloud-326CE5)](https://kubernetes.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-1.5+-7B42BC.svg)](https://www.terraform.io/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
 An end-to-end, high-speed Retrieval-Augmented Generation (RAG) service optimized for CPU inference. The system indexes document knowledge bases, stores vector embeddings in Yandex Cloud S3 via LanceDB, performs hybrid search, and streams answers using local LLM runtimes (Ollama with Qwen2.5-1.5B) inside Yandex Managed Service for Kubernetes.
 
@@ -61,30 +63,44 @@ flowchart TD
 ```
 .
 ├── app/
-│   └── main.py              # Main FastAPI service (Healthz, /query, /stream endpoints)
-├── data/                    # Raw input documents 
-├── infra/                   # Infrastructure configuration (Terraform)
-├── k8s/                     # Kubernetes deployment manifests (Services, Deployments)
-├── scripts/                 # Data ingestion scripts, embedding generators, and evaluation
-├── .dockerignore
-├── .env                     # Local environment variables
-├── Dockerfile               # Production container image build recipe
-├── pyproject.toml           # Project dependencies 
-└── requirements.txt         # Requirements used in Dockerfile
+│   ├── main.py              # FastAPI REST API (/query, /stream, /metrics, /feedback)
+│   └── ui.py                # Streamlit Web User Interface
+├── data/                    # Raw input PDF documents
+├── img/                     # Images/screenshots used in README.md
+├── infra/                   # Infrastructure configuration (Terraform for Yandex Cloud)
+├── k8s/                     # Kubernetes manifests (RAG, LLM, Monitoring stack)
+├── notebooks/               # RAG and LLM evaluation notebooks
+├── scripts/                 # Data ingestion, indexing, and benchmark scripts
+├── Dockerfile               # Production build recipe for FastAPI backend
+├── Dockerfile.streamlit     # Dedicated container build for Streamlit UI
+├── docker-compose.yaml      # Multi-container setup for local development
+├── requirements.txt         # required python modules for RAG image
+└── pyproject.toml           # Project dependencies managed via uv
 ```
 
 ## Evaluation & Metrics
 
 ### 1. Retrieval Evaluation
 
-### 2. LLM Output Evaluation (LLM-as-a-Judge)
+| Method | hit_rate	 | mrr | avg_latency_ms
+| :--- | :---: | :---: | :---: |
+
+| Vector Search | 0.8533 | 0.7057 | 2742.41 |
+| Full-Text Search (FTS) | 0.8067 | 0.7102 | 418.67 |
+| Hybrid Search	| 0.8533 | 0.7057 | 3037.72 |
+
+<img src="img/rag_evaluation_001.png?raw=true" alt="RAG evaluation" title="RAG evaluation" width="30%"> <br>
+
+### 2. LLM Evaluation 
+
+<img src="img/llm_evaluation_001.png?raw=true" alt="LLM evaluation" title="LLM evaluation" width="30%"> <br>
 
 ## Quickstart & Setup Guide
 
 Prerequisites
 - OS Linux
 - Python 3.12
-- Docker, Docker Compose Kubernetes cluster)
+- Docker, managed Kubernetes, Yandex Cloud
 - uv for Python environment management
 - terraform
 
@@ -102,27 +118,7 @@ terraform plan
 terraform apply
 ```
 
-variables.json will be created in infra directory.
-
-3. Configure Environment Variables:
-
-Copy env.example to .env and update it
-
-```
-EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
-TABLE_NAME=pdf_vectors
-
-S3_BUCKET_NAME=akimovp-bucket-...
-S3_ACCESS_KEY=YC...
-S3_SECRET_KEY=YC...
-S3_ENDPOINT_URL=https://storage.yandexcloud.net
-AWS_REGION=ru-central1
-
-KSERVE_URL=http://apps.akimovp.ru/v1/completions
-LLM_MODEL_NAME=qwen-1-5b
-```
-
-Files k8s/secret-rag.yaml, k8s/configmap-rag.yaml should be populated accordingly.
+3. env files will be created automatically
 
 4. Install Dependencies:
 
@@ -139,11 +135,11 @@ python scripts/ingest.py
 6. Build and push the images: RAG and UI
 
 ```
-docker build -t petrakimovdocker/rag-service:latest .
-docker push petrakimovdocker/rag-service:latest
+docker build -t <your_registry>/rag-service:latest .
+docker push <your_registry>/rag-service:latest
 
-docker build -t petrakimovdocker/rag-ui:latest -f Dockerfile.streamlit .
-docker push petrakimovdocker/rag-ui:latest 
+docker build -t <your_registry>/rag-ui:latest -f Dockerfile.streamlit .
+docker push <your_registry>/rag-ui:latest 
 ```
 
 7. Deploy RAG, LLM, UI in k8s cluster:
@@ -162,9 +158,9 @@ kubectl apply -f k8s/rag_llm
 
 | Criteria | Points Claimed | Supporting Artifacts & Implementation Details |
 | :--- | :---: | :--- |
-| **Problem Description** | **2 / 2** | • **`README.md`**: Section *Problem Description* details the target problem (efficient searching across large documentations/PDFs) and the end-to-end CPU-accelerated solution. |
-| **Retrieval Flow** | **2 / 2** | • **`scripts/ingest.py`**: Embeds text using `fastembed` (`BAAI/bge-small-en-v1.5`) and creates Full-Text Search (FTS) indexes in **LanceDB**.<br>• **`app/main.py`**: Executes hybrid vector + text search over LanceDB stored in **Yandex Cloud S3**, passing retrieved context to **Ollama** (`qwen2.5:1.5b`). |
-| **Retrieval Evaluation** | **2 / 2** | • **`notebooks/rag_evaluation.ipynb`**: Evaluates and compares multiple retrieval strategies (Vector Search vs. FTS vs. Hybrid Search with RRF) across metrics like Hit Rate and MRR, selecting Hybrid Search as the best-performing approach. |
+| **Problem Description** | **2 / 2** | [README.md](README.md): Section *Problem Description* details the target problem (efficient searching across large documentations/PDFs) and the end-to-end CPU-accelerated solution. |
+| **Retrieval Flow** | **2 / 2** | [ingest.py](scripts/ingest.py): Embeds text using `fastembed` (`BAAI/bge-small-en-v1.5`) and creates Full-Text Search (FTS) indexes in **LanceDB**.<br>[main.py](app/main.py): Executes hybrid vector + text search over LanceDB stored in **Yandex Cloud S3**, passing retrieved context to **Ollama** (`qwen2.5:1.5b`). |
+| **Retrieval Evaluation** | **2 / 2** | [rag_evaluation.ipynb](notebooks/rag_evaluation.ipynb): Evaluates and compares multiple retrieval strategies (Vector Search vs. FTS vs. Hybrid Search with RRF) across metrics like Hit Rate and MRR, selecting Hybrid Search as the best-performing approach. |
 | **LLM Evaluation** | **2 / 2** | • **`notebooks/llm_evaluation.ipynb`**: Evaluates multiple LLM parameters, prompt templates, and models (e.g., comparing `qwen2.5:0.5b` vs `qwen2.5:1.5b`) using LLM-as-a-Judge evaluation techniques. |
 | **Interface** | **2 / 2** | • **`app/main.py`**: Production **FastAPI** REST backend serving `/api/v1/query`, `/stream` (SSE), `/metrics`, and `/feedback` endpoints.<br>• **`app/ui.py`** & **`Dockerfile.streamlit`**: Interactive **Streamlit** Web Interface.<br>• **`k8s/rag_llm/streamlit.yaml`**: Kubernetes service deployment for the UI. |
 | **Ingestion Pipeline** | **2 / 2** | • **`scripts/ingest.py`**: Automated extraction from PDF (`data/*.pdf`), text normalization, smart chunking with sentence boundary preservation, vectorization, and remote indexing into LanceDB on Yandex S3 Object Storage.<br>• **`airflow_minio/`**: Directed Acyclic Graphs (DAGs) for automated dataset ingestion and pipeline scheduling. |
