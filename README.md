@@ -56,7 +56,7 @@ flowchart TD
 - Vector Database: LanceDB connected to Yandex Cloud S3 (s3://...).
 - Backend / API Framework: FastAPI + httpx (Asynchronous HTTP client) + uvicorn.
 - Package & Dependency Management: uv (pyproject.toml).
-- Containerization & Deployment: Docker, docker-compose, and Kubernetes (k8s/ manifests).
+- Containerization & Deployment: Docker and Kubernetes (k8s/ manifests).
 
 ## Repository Structure
 
@@ -73,7 +73,6 @@ flowchart TD
 ├── scripts/                 # Data ingestion, indexing, and benchmark scripts
 ├── Dockerfile               # Production build recipe for FastAPI backend
 ├── Dockerfile.streamlit     # Dedicated container build for Streamlit UI
-├── docker-compose.yaml      # Multi-container setup for local development
 ├── requirements.txt         # required python modules for RAG image
 └── pyproject.toml           # Project dependencies managed via uv
 ```
