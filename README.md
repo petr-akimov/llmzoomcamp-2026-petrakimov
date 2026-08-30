@@ -78,34 +78,13 @@ flowchart TD
 └── pyproject.toml           # Project dependencies managed via uv
 ```
 
-## Evaluation & Metrics
-
 ---
 
 ## Evaluation & Metrics
 
 ### 1. Retrieval Evaluation
-Evaluated on a gold-standard dataset of document queries using `notebooks/rag_evaluation.ipynb`.
 
-| Search Strategy | Hit Rate @ 5 | MRR @ 5 |
-| :--- | :---: | :---: |
-| Vector Search (Dense) | 0.78 | 0.62 |
-| Full-Text Search (FTS / Sparse) | 0.71 | 0.54 |
-| **Hybrid Search (Vector + FTS + RRF)** | **0.89** | **0.76** |
-
-*Conclusion:* Hybrid Search combined with Reciprocal Rank Fusion (RRF) significantly improves recall on specific domain technical terms while maintaining high semantic accuracy.
-
-### 2. LLM Output Evaluation (LLM-as-a-Judge)
-Evaluated in `notebooks/llm_evaluation.ipynb` using GPT-4o / Qwen as an evaluator across generated response parameters.
-
-| Model / Strategy | Context Relevance | Answer Faithfulness | Average Latency (CPU) |
-| :--- | :---: | :---: | :---: |
-| `qwen2.5:0.5b` | 0.74 | 0.68 | ~0.8s |
-| **`qwen2.5:1.5b` (Selected)** | **0.91** | **0.88** | **~2.1s** |
-
----
-
-### 1. Retrieval Evaluation
+- [rag_evaluation.ipynb](notebooks/rag_evaluation.ipynb)
 
 | Method | hit_rate	 | mrr | avg_latency_ms |
 | :--- | :---: | :---: | :---: |
@@ -116,6 +95,8 @@ Evaluated in `notebooks/llm_evaluation.ipynb` using GPT-4o / Qwen as an evaluato
 <img src="img/rag_evaluation_001.png?raw=true" alt="RAG evaluation" title="RAG evaluation" width="50%"> <br>
 
 ### 2. LLM Output Evaluation
+
+- [llm_evaluation.ipynb](notebooks/llm_evaluation.ipynb)
 
 | Model | ROUGE-1 | BLEU | Token F1 | Avg Latency (s) | Tokens/sec |
 | :--- | :---: | :---: | :---: | :---: | :---: |
