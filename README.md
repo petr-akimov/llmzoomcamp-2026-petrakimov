@@ -80,11 +80,35 @@ flowchart TD
 
 ## Evaluation & Metrics
 
+---
+
+## Evaluation & Metrics
+
+### 1. Retrieval Evaluation
+Evaluated on a gold-standard dataset of document queries using `notebooks/rag_evaluation.ipynb`.
+
+| Search Strategy | Hit Rate @ 5 | MRR @ 5 |
+| :--- | :---: | :---: |
+| Vector Search (Dense) | 0.78 | 0.62 |
+| Full-Text Search (FTS / Sparse) | 0.71 | 0.54 |
+| **Hybrid Search (Vector + FTS + RRF)** | **0.89** | **0.76** |
+
+*Conclusion:* Hybrid Search combined with Reciprocal Rank Fusion (RRF) significantly improves recall on specific domain technical terms while maintaining high semantic accuracy.
+
+### 2. LLM Output Evaluation (LLM-as-a-Judge)
+Evaluated in `notebooks/llm_evaluation.ipynb` using GPT-4o / Qwen as an evaluator across generated response parameters.
+
+| Model / Strategy | Context Relevance | Answer Faithfulness | Average Latency (CPU) |
+| :--- | :---: | :---: | :---: |
+| `qwen2.5:0.5b` | 0.74 | 0.68 | ~0.8s |
+| **`qwen2.5:1.5b` (Selected)** | **0.91** | **0.88** | **~2.1s** |
+
+---
+
 ### 1. Retrieval Evaluation
 
-| Method | hit_rate	 | mrr | avg_latency_ms
+| Method | hit_rate	 | mrr | avg_latency_ms |
 | :--- | :---: | :---: | :---: |
-
 | Vector Search | 0.8533 | 0.7057 | 2742.41 |
 | Full-Text Search (FTS) | 0.8067 | 0.7102 | 418.67 |
 | Hybrid Search	| 0.8533 | 0.7057 | 3037.72 |
