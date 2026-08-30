@@ -14,7 +14,7 @@ grafana:
       label: grafana_dashboard
       folder: /var/lib/grafana/dashboards
     datasources:
-      enabled: false          # отключаем sidecar, будем задавать datasources явно
+      enabled: false          
 
   ingress:
     enabled: false
@@ -22,7 +22,6 @@ grafana:
   defaultDashboardsEnabled: true
   defaultDashboardsTimezone: browser
 
-  # Явное задание источников данных (без sidecar)
   datasources:
     datasources.yaml:
       apiVersion: 1
@@ -54,7 +53,6 @@ grafana:
 prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
-    # ✅ Позволяет подхватывать ServiceMonitor из всех namespaces (включая default)
     serviceMonitorNamespaceSelector: {}
     podMonitorNamespaceSelector: {}
     evaluationInterval: 30s

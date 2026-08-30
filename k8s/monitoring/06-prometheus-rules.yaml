@@ -13,7 +13,6 @@ spec:
     interval: 30s
     rules:
 
-    # Высокий процент ошибок 5xx (> 5%)
     - alert: RAGHighErrorRate
       expr: |
         (sum(rate(rag_requests_total{status=~"5.."}[5m])) / sum(rate(rag_requests_total[5m]))) * 100 > 5
@@ -24,7 +23,6 @@ spec:
         summary: "RAG Service High Error Rate"
         description: "Error rate (5xx) is above 5% for more than 2 minutes."
 
-    # Высокая задержка ответа LLM (> 5 секунд)
     - alert: RAGHighLLMLatency
       expr: |
         rate(rag_llm_seconds_sum[5m]) / rate(rag_llm_seconds_count[5m]) > 5
